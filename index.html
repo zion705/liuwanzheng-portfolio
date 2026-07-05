@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="刘万正的 AI 产品博客与实验索引，聚焦 Agent、多轮对话、模型评测与 AIGC 产品。"
+    />
+    <title>刘万正 - AI Product Experiments</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="cursor-dot" id="cursorDot" aria-hidden="true"></div>
+    <header class="header">
+      <a class="logo" href="#index" aria-label="回到 Index">
+        <span class="logo-grid" aria-hidden="true">
+          <i></i><i></i><i></i><i></i>
+        </span>
+      </a>
+      <nav class="nav" aria-label="Primary navigation">
+        <a href="#index">Index</a>
+        <a href="#articles">Articles</a>
+        <button id="openCommand" type="button">Cmd</button>
+        <a href="mailto:1584365828@qq.com">Ask</a>
+      </nav>
+    </header>
+
+    <main class="grid-shell">
+      <section class="scene-section" id="index" aria-label="Interactive index scene">
+        <canvas id="scene"></canvas>
+        <div class="viewfinder" aria-hidden="true">
+          <span></span><span></span><span></span><span></span>
+        </div>
+        <div class="scene-vignette" aria-hidden="true"></div>
+        <div class="scene-caption">
+          <span>Agent</span>
+          <span>Evaluation</span>
+          <span>AIGC</span>
+          <span>Prototype</span>
+        </div>
+      </section>
+
+      <section class="intro">
+        <div>
+          <h1>Experiments and essays on AI product systems.</h1>
+          <p>
+            Hi 我是 <strong>刘万正</strong>，北京理工大学产品设计硕士，AI 产品经理。
+            这里整理我在 Agent、多轮对话、模型评测、AIGC 消费产品里做过的项目，以及我希望写给自己的交互式文章。
+          </p>
+        </div>
+        <p>
+          每个项目都尝试把复杂问题拆成可以被理解的链路：用户动机、模型能力目标、评测口径、原型验证和反馈闭环。
+          我希望这个站点像一个小型实验笔记本：有清晰的文字，也有能拖动、能观察、能复盘的 playground。
+        </p>
+      </section>
+
+      <section class="articles" id="articles" aria-label="Articles and experiments">
+        <div class="year-group" data-year-group>
+          <button class="year-label" type="button">2026</button>
+          <a class="article-link" href="#agent-feedback">
+            <span class="article-title" data-scramble>AI Agent 多任务执行体验</span>
+            <span class="article-subtitle">低打扰、可感知、可恢复的任务反馈系统</span>
+            <time>Jul 05</time>
+          </a>
+          <a class="article-link" href="#stock-party">
+            <span class="article-title" data-scramble>《我不是股神》AI 股票派对游戏</span>
+            <span class="article-subtitle">游戏化学习 + 熟人社交 + AI 复盘官</span>
+            <time>May 18</time>
+          </a>
+          <a class="article-link" href="#digital-human">
+            <span class="article-title" data-scramble>TeleStudio 实时交互数字人模块</span>
+            <span class="article-subtitle">数字人设置、实时交互、状态流转和验收口径</span>
+            <time>Mar 22</time>
+          </a>
+        </div>
+
+        <div class="year-group" data-year-group>
+          <button class="year-label" type="button">2025</button>
+          <a class="article-link" href="#chat-eval">
+            <span class="article-title" data-scramble>聊天扮演理想态与模型评测</span>
+            <span class="article-subtitle">从“聊得好”到多轮连贯性、主动性和人设稳定</span>
+            <time>Sep 12</time>
+          </a>
+          <a class="article-link" href="#slang-sft">
+            <span class="article-title" data-scramble>俚语理解 badcase 到 SFT 数据</span>
+            <span class="article-subtitle">500+ query、100+ response 与训练前后盲评</span>
+            <time>Aug 21</time>
+          </a>
+          <a class="article-link" href="#buding">
+            <span class="article-title" data-scramble>布叮 AI：AIGC 动态表情包小程序 0-1</span>
+            <span class="article-subtitle">1 个月上线，200+ 新增用户，13 位首次付费用户</span>
+            <time>Mar 03</time>
+          </a>
+        </div>
+
+        <div class="year-group" data-year-group>
+          <button class="year-label" type="button">2024</button>
+          <a class="article-link" href="#mvp-funnel">
+            <span class="article-title" data-scramble>AIGC MVP 漏斗：先验证情绪，再验证功能</span>
+            <span class="article-subtitle">小红书内容投放、微信落地页、客服沟通与风格偏好</span>
+            <time>Dec 27</time>
+          </a>
+        </div>
+      </section>
+
+      <section class="post-preview" id="agent-feedback">
+        <div class="preview-copy">
+          <span class="eyebrow">Interactive playground</span>
+          <h2>Agent feedback tuner</h2>
+          <p>
+            用三个参数重现 Agent 执行中的关键体验判断：打扰度、可感知度、恢复感。
+            这不是单纯的 loading，而是用户和系统之间的信任协议。
+          </p>
+        </div>
+        <div class="playground">
+          <div class="agent-orb">
+            <span></span>
+            <strong id="score">82</strong>
+            <small id="mood">Calm, visible, recoverable</small>
+          </div>
+          <label>
+            <span>Interrupt</span>
+            <input type="range" min="0" max="100" value="28" data-control="interrupt" />
+          </label>
+          <label>
+            <span>Visibility</span>
+            <input type="range" min="0" max="100" value="74" data-control="visibility" />
+          </label>
+          <label>
+            <span>Recovery</span>
+            <input type="range" min="0" max="100" value="82" data-control="recovery" />
+          </label>
+        </div>
+      </section>
+
+      <footer class="footer">
+        <div>
+          <span>Metadata</span>
+          <dl>
+            <dt>Focus</dt>
+            <dd>AI Product / Agent UX</dd>
+            <dt>School</dt>
+            <dd>Beijing Institute of Technology</dd>
+            <dt>Current Time</dt>
+            <dd id="clock">--:--:--</dd>
+          </dl>
+        </div>
+        <div>
+          <span>Links</span>
+          <a href="mailto:1584365828@qq.com">Email</a>
+          <a href="tel:15762977259">Phone</a>
+          <a href="#index">Home</a>
+        </div>
+      </footer>
+    </main>
+
+    <dialog class="command" id="command">
+      <div class="command-box">
+        <input id="commandInput" type="search" placeholder="Search pages and experiments..." />
+        <a href="#index">Index</a>
+        <a href="#articles">Articles</a>
+        <a href="#agent-feedback">Agent feedback tuner</a>
+        <a href="mailto:1584365828@qq.com">Ask by email</a>
+      </div>
+    </dialog>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
