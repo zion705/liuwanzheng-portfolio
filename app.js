@@ -1,9 +1,17 @@
 const canvas = document.querySelector("#scene");
 const ctx = canvas.getContext("2d");
-const pointer = { x: 0.5, y: 0.45 };
+const pointer = { x: 0.5, y: 0.52, active: false };
 let width = 0;
 let height = 0;
 let dpr = 1;
+const maskCanvas = document.createElement("canvas");
+const maskCtx = maskCanvas.getContext("2d");
+const revealCanvas = document.createElement("canvas");
+const revealCtx = revealCanvas.getContext("2d");
+const dryWood = new Image();
+const sproutWood = new Image();
+dryWood.src = "./assets/wood-dry.png";
+sproutWood.src = "./assets/wood-sprout.png";
 
 function resize() {
   dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -12,65 +20,143 @@ function resize() {
   height = rect.height;
   canvas.width = Math.floor(width * dpr);
   canvas.height = Math.floor(height * dpr);
+  maskCanvas.width = canvas.width;
+  maskCanvas.height = canvas.height;
+  revealCanvas.width = canvas.width;
+  revealCanvas.height = canvas.height;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  maskCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  revealCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+function coverRect(img) {
+  const imageRatio = img.naturalWidth / img.naturalHeight;
+  const canvasRatio = width / height;
+  let drawWidth = width;
+  let drawHeight = height;
+  if (canvasRatio > imageRatio) {
+    drawHeight = width / imageRatio;
+  } else {
+    drawWidth = height * imageRatio;
+  }
+  return {
+    x: (width - drawWidth) / 2,
+    y: (height - drawHeight) / 2,
+    width: drawWidth,
+    height: drawHeight,
+  };
+}
+
+function drawImageCover(context, img) {
+  if (!img.complete || !img.naturalWidth) return;
+  const rect = coverRect(img);
+  context.drawImage(img, rect.x, rect.y, rect.width, rect.height);
+}
+
+function paintRevealMask(time) {
+  maskCtx.save();
+  maskCtx.globalCompositeOperation = "destination-out";
+  maskCtx.fillStyle = "rgba(0, 0, 0, 0.035)";
+  maskCtx.fillRect(0, 0, width, height);
+  maskCtx.restore();
+
+  if (!pointer.active) return;
+
+  const x = pointer.x * width;
+  const y = pointer.y * height;
+  const pulse = Math.sin(time * 0.004) * 8;
+  const radius = Math.min(width, height) * 0.17 + pulse;
+
+  maskCtx.save();
+  maskCtx.globalCompositeOperation = "source-over";
+
+  const outer = maskCtx.createRadialGradient(x, y, radius * 0.08, x, y, radius);
+  outer.addColorStop(0, "rgba(255,255,255,0.95)");
+  outer.addColorStop(0.38, "rgba(255,255,255,0.72)");
+  outer.addColorStop(0.72, "rgba(255,255,255,0.22)");
+  outer.addColorStop(1, "rgba(255,255,255,0)");
+  maskCtx.fillStyle = outer;
+  maskCtx.beginPath();
+  maskCtx.arc(x, y, radius, 0, Math.PI * 2);
+  maskCtx.fill();
+
+  for (let i = 0; i < 7; i += 1) {
+    const angle = time * 0.0013 + i * 1.71;
+    const offset = radius * (0.16 + (i % 3) * 0.08);
+    const sx = x + Math.cos(angle) * offset;
+    const sy = y + Math.sin(angle * 1.23) * offset * 0.48;
+    const small = radius * (0.18 + (i % 2) * 0.06);
+    const g = maskCtx.createRadialGradient(sx, sy, 0, sx, sy, small);
+    g.addColorStop(0, "rgba(255,255,255,0.34)");
+    g.addColorStop(1, "rgba(255,255,255,0)");
+    maskCtx.fillStyle = g;
+    maskCtx.beginPath();
+    maskCtx.arc(sx, sy, small, 0, Math.PI * 2);
+    maskCtx.fill();
+  }
+
+  maskCtx.restore();
 }
 
 function drawScene(time) {
   ctx.clearRect(0, 0, width, height);
-  const cell = width < 720 ? 11 : 14;
-  const cols = Math.ceil(width / cell);
-  const rows = Math.ceil(height / cell);
-  const cx = width * pointer.x;
-  const cy = height * pointer.y;
 
-  ctx.font = `${Math.max(9, cell - 3)}px ui-monospace, SFMono-Regular, Consolas, monospace`;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-
-  for (let y = 0; y < rows; y += 1) {
-    for (let x = 0; x < cols; x += 1) {
-      const px = x * cell + cell * 0.5;
-      const py = y * cell + cell * 0.5;
-      const nx = (px / width - 0.5) * 2;
-      const ny = (py / height - 0.5) * 2;
-      const wave =
-        Math.sin(nx * 8 + time * 0.0012) +
-        Math.cos(ny * 7 - time * 0.001) +
-        Math.sin((nx + ny) * 6 + time * 0.0008);
-      const cursor = Math.max(0, 1 - Math.hypot(px - cx, py - cy) / 260);
-      const mask = Math.max(0, 1 - Math.hypot(nx * 0.94, ny * 1.32));
-      const alpha = Math.max(0, wave * 0.18 + cursor * 0.9 + mask * 0.5 - 0.34);
-      if (alpha <= 0.03) continue;
-
-      const glyphs = ".:+=*#%@";
-      const index = Math.min(glyphs.length - 1, Math.floor(alpha * glyphs.length));
-      const hue = 230 + wave * 18 + cursor * 56;
-      ctx.fillStyle = `hsla(${hue}, 78%, ${38 + cursor * 18}%, ${Math.min(alpha * 0.82, 0.78)})`;
-      ctx.fillText(glyphs[index], px, py);
-    }
-  }
-
-  const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 280);
-  grad.addColorStop(0, "rgba(65, 87, 255, 0.11)");
-  grad.addColorStop(1, "rgba(65, 87, 255, 0)");
-  ctx.fillStyle = grad;
+  drawImageCover(ctx, dryWood);
+  ctx.save();
+  ctx.globalCompositeOperation = "multiply";
+  const shade = ctx.createRadialGradient(width * 0.5, height * 0.5, height * 0.1, width * 0.5, height * 0.52, height * 0.72);
+  shade.addColorStop(0, "rgba(255,255,255,0)");
+  shade.addColorStop(1, "rgba(225,220,207,0.28)");
+  ctx.fillStyle = shade;
   ctx.fillRect(0, 0, width, height);
+  ctx.restore();
+
+  paintRevealMask(time);
+
+  revealCtx.clearRect(0, 0, width, height);
+  drawImageCover(revealCtx, sproutWood);
+  revealCtx.save();
+  revealCtx.globalCompositeOperation = "destination-in";
+  revealCtx.drawImage(maskCanvas, 0, 0, width, height);
+  revealCtx.restore();
+
+  ctx.drawImage(revealCanvas, 0, 0, width, height);
+
+  if (pointer.active) {
+    const x = pointer.x * width;
+    const y = pointer.y * height;
+    const glow = ctx.createRadialGradient(x, y, 0, x, y, Math.min(width, height) * 0.24);
+    glow.addColorStop(0, "rgba(151, 219, 77, 0.16)");
+    glow.addColorStop(0.5, "rgba(151, 219, 77, 0.08)");
+    glow.addColorStop(1, "rgba(151, 219, 77, 0)");
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, width, height);
+  }
 
   requestAnimationFrame(drawScene);
 }
 
 window.addEventListener("resize", resize);
-window.addEventListener("pointermove", (event) => {
-  pointer.x = event.clientX / window.innerWidth;
-  pointer.y = event.clientY / window.innerHeight;
+const sceneSection = document.querySelector(".scene-section");
+sceneSection.addEventListener("pointermove", (event) => {
+  const rect = sceneSection.getBoundingClientRect();
+  pointer.x = (event.clientX - rect.left) / rect.width;
+  pointer.y = (event.clientY - rect.top) / rect.height;
+  pointer.active = true;
   const cursor = document.querySelector("#cursorDot");
   if (cursor) {
     cursor.style.opacity = "1";
     cursor.style.transform = `translate3d(${event.clientX}px, ${event.clientY}px, 0) translate(-50%, -50%)`;
   }
 });
+sceneSection.addEventListener("pointerleave", () => {
+  pointer.active = false;
+});
 resize();
-requestAnimationFrame(drawScene);
+Promise.all([
+  dryWood.decode().catch(() => undefined),
+  sproutWood.decode().catch(() => undefined),
+]).then(() => requestAnimationFrame(drawScene));
 
 const heroScene = document.querySelector(".scene-section");
 const heroCopy = document.querySelector(".hero-copy");
